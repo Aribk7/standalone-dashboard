@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 /** Loop mark: a ring that draws itself in (pure CSS, so it always completes). */
 export function LoopMark({ size = 28, animate = true }: { size?: number; animate?: boolean }) {
   return (
@@ -23,6 +25,8 @@ export function LoopMark({ size = 28, animate = true }: { size?: number; animate
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
+      <Image src="/brand/24f-logo.png" alt="24F" width={52} height={30} priority className="h-[30px] w-auto" />
+      <span className="mx-1 h-6 w-px bg-line-strong" aria-hidden />
       <LoopMark />
       <span className="text-[15px] font-semibold tracking-tight">
         Loop <span className="text-ink-3 font-medium">Analytics</span>

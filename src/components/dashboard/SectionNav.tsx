@@ -65,7 +65,7 @@ export function SectionNav() {
   return (
     <nav
       aria-label="Sections"
-      className="sticky top-[61px] z-30 -mx-4 mb-6 mt-2 bg-gradient-to-b from-bg via-bg/80 to-transparent px-4 pb-4 pt-2 sm:-mx-6 sm:px-6 max-sm:top-[118px]"
+      className="sticky top-[70px] z-30 -mx-4 mb-6 mt-2 bg-gradient-to-b from-bg via-bg/80 to-transparent px-4 pb-4 pt-2 sm:-mx-6 sm:px-6 max-sm:top-[118px]"
     >
       <div
         ref={bar}

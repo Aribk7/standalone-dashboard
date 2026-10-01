@@ -30,13 +30,13 @@ export function TopBar({ range, onRange, onHoverRange, storeName, syncedAt, sync
         </div>
       )}
       <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
-        <Wordmark className="mr-auto lg:mr-0" />
+        <Wordmark className="mr-auto xl:mr-0" />
 
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.5 }}
-          className="hidden min-w-0 items-center gap-2 rounded-full border border-line bg-surface/70 py-1 pl-2.5 pr-3 text-[12.5px] md:flex lg:mr-auto"
+          className="hidden min-w-0 items-center gap-2 rounded-full border border-line bg-surface/70 py-1 pl-2.5 pr-3 text-[12.5px] xl:mr-auto xl:flex"
           title={sourceError ?? undefined}
         >
           <span className="relative flex h-2 w-2">
