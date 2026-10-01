@@ -22,8 +22,9 @@ using the client's own key. It contains no 24F internals.
 ## Setup
 
 1. **Database:** connect a Supabase project to the Vercel project (Vercel →
-   Integrations → Supabase), then run `supabase/migrations/0001_init.sql` in the
-   Supabase SQL editor.
+   Integrations → Supabase) and link this repo in Supabase's GitHub integration
+   (working directory `.`, production branch `main`). Migrations in
+   `supabase/migrations/` are applied on every push to `main`.
 2. **Secret:** add `APP_SECRET` in Vercel's environment variables (see
    `.env.example` for how to generate one).
 3. **Deploy:** push to `main`; Vercel builds and deploys.
