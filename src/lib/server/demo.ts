@@ -1,8 +1,10 @@
 import "server-only";
 import type { Cohort, DailyRow, LoopReport, PeriodRow, ProductRow, SeriesPoint } from "../types";
 
-// Entirely fictional sample data in the documented /loop/report shape. Used for
-// local development and the optional demo sign-in; it describes no real store.
+// Entirely invented sample data in the documented /loop/report shape, used for
+// local development and the optional demo sign-in. It describes no real store,
+// and every cost is an arbitrary share of the invented revenue, not a real
+// rate or price from 24F or anyone else.
 
 const DAY = 86_400_000;
 const HISTORY_DAYS = 1100;
@@ -48,6 +50,11 @@ interface Day {
   productCost: number;
   paused: number;
 }
+
+// Arbitrary cost shares of the invented revenue (illustrative only).
+const FEE_SHARE = 0.03;
+const FULFILLMENT_SHARE = 0.15;
+const PRODUCT_SHARE = 0.13;
 
 let history: { built: string; days: Day[] } | null = null;
 
@@ -100,9 +107,9 @@ function buildHistory(today: Date): Day[] {
       newCustomers: firstOrders,
       units,
       refunds,
-      fees: revenue * 0.031,
-      fulfillment: orders * (7.4 + r() * 0.8),
-      productCost: units * 6.15,
+      fees: revenue * FEE_SHARE,
+      fulfillment: revenue * (FULFILLMENT_SHARE + (r() - 0.5) * 0.02),
+      productCost: revenue * PRODUCT_SHARE,
       paused: Math.round(active * 0.035),
     });
   }
@@ -164,7 +171,7 @@ export function demoLoopReport(from: string, to: string): LoopReport {
   const orders = sum(days, (d) => d.orders);
   const revenue = sum(days, (d) => d.revenue - d.refunds);
   const revenuePerOrder = div(revenue, orders) ?? 0;
-  const feeRate = 0.031;
+  const feeRate = FEE_SHARE;
   const feePerOrder = revenuePerOrder * feeRate;
   const fulfillmentPerOrder = div(sum(days, (d) => d.fulfillment), orders) ?? 0;
   const productPerOrder = div(sum(days, (d) => d.productCost), orders) ?? 0;
@@ -381,8 +388,8 @@ export function demoLoopReport(from: string, to: string): LoopReport {
       subscriptions: Math.round(last.active * 1.9),
       orders: sum(all, (d) => d.orders),
       metaConnected: true,
-      productCostPerUnit: 6.15,
-      productCostCurrency: "USD",
+      productCostPerUnit: null,
+      productCostCurrency: null,
       rateDate: today.toISOString().slice(0, 10),
     },
     builtAt: new Date(Date.now() - 4 * 60_000).toISOString(),
