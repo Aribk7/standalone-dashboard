@@ -79,20 +79,10 @@ export function PinInput({ length, disabled, state = "idle", onComplete, onChang
                   ? "border-line-strong bg-surface-3"
                   : "border-line bg-surface-2";
           return (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
-              animate={{
-                opacity: 1,
-                y: state === "success" ? [0, -6, 0] : 0,
-                filter: "blur(0px)",
-              }}
-              transition={{
-                delay: state === "success" ? i * 0.04 : 0.05 + i * 0.035,
-                duration: 0.5,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-              className={`relative grid h-14 w-[34px] place-items-center rounded-xl border text-xl sm:rounded-2xl sm:text-2xl font-semibold transition-colors duration-200 sm:h-16 sm:w-12 ${tone} ${i === 3 ? "mr-1.5 sm:mr-3" : ""}`}
+              style={{ animationDelay: `${0.05 + i * 0.035}s` }}
+              className={`digit-in relative grid h-14 w-[34px] place-items-center rounded-xl border text-xl sm:rounded-2xl sm:text-2xl font-semibold transition-colors duration-200 sm:h-16 sm:w-12 ${tone} ${i === 3 ? "mr-1.5 sm:mr-3" : ""}`}
             >
               {digit ? (
                 <motion.span
@@ -113,7 +103,7 @@ export function PinInput({ length, disabled, state = "idle", onComplete, onChang
                   transition={{ type: "spring", stiffness: 600, damping: 40 }}
                 />
               )}
-            </motion.div>
+            </div>
           );
         })}
       </div>

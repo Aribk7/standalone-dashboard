@@ -2,7 +2,6 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { LoopMark } from "@/components/ui/Logo";
@@ -11,7 +10,6 @@ import { PinInput, type PinInputHandle } from "./PinInput";
 
 const PIN_LENGTH = 8;
 const KEY_PATTERN = /^24f_fin_[0-9a-f]{64}$/;
-const ease = [0.16, 1, 0.3, 1] as const;
 
 type Mode = "pin" | "key" | "reveal";
 
@@ -29,20 +27,14 @@ async function post<T>(url: string, body: unknown): Promise<{ ok: true; data: T 
 export function AuthScreen({ demoAvailable }: { demoAvailable: boolean }) {
   const [mode, setMode] = useState<Mode>("pin");
   const [pin, setPin] = useState<string | null>(null);
-  const router = useRouter();
-
-  useEffect(() => {
-    router.prefetch("/dashboard");
-  }, [router]);
+  // A full navigation, so the dashboard is always requested with the new
+  // session cookie (no client-cached redirect from before sign-in).
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- deliberate full navigation
+  const openDashboard = () => window.location.assign("/dashboard");
 
   return (
     <main className="relative flex min-h-dvh flex-col items-center justify-center px-4 py-16">
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease }}
-        className="mb-10 flex flex-col items-center gap-4 text-center"
-      >
+      <div className="fade-in mb-10 flex flex-col items-center gap-4 text-center">
         <LoopMark size={44} />
         <div>
           <h1 className="text-[28px] font-semibold tracking-[-0.03em] sm:text-[34px]">
@@ -50,11 +42,13 @@ export function AuthScreen({ demoAvailable }: { demoAvailable: boolean }) {
           </h1>
           <p className="mt-1.5 text-[14px] text-ink-3">Your subscription numbers, beautifully clear.</p>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div layout transition={{ layout: { duration: 0.55, ease } }} className="card w-full max-w-[460px] overflow-hidden" data-glow>
-        <AnimatePresence mode="popLayout" initial={false}>
-          {mode === "pin" && <PinStep key="pin" onNew={() => setMode("key")} onSuccess={() => router.replace("/dashboard")} />}
+      <div className="card w-full max-w-[460px] overflow-hidden">
+        {/* Steps swap instantly (no exit animation), so a slow or throttled
+            animation can never leave an old step covering the new one. */}
+        <div key={mode} className="step-in">
+          {mode === "pin" && <PinStep key="pin" onNew={() => setMode("key")} onSuccess={openDashboard} />}
           {mode === "key" && (
             <KeyStep
               key="key"
@@ -64,32 +58,21 @@ export function AuthScreen({ demoAvailable }: { demoAvailable: boolean }) {
                 setPin(p);
                 setMode("reveal");
               }}
-              onExisting={() => router.replace("/dashboard")}
+              onExisting={openDashboard}
             />
           )}
-          {mode === "reveal" && pin && <RevealStep key="reveal" pin={pin} onDone={() => router.replace("/dashboard")} />}
-        </AnimatePresence>
-      </motion.div>
+          {mode === "reveal" && pin && <RevealStep key="reveal" pin={pin} onDone={openDashboard} />}
+        </div>
+      </div>
 
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6, duration: 0.8 }}
-        className="mt-8 flex items-center gap-2 text-[12px] text-ink-3"
-      >
+      <p className="fade-in mt-8 flex items-center gap-2 text-[12px] text-ink-3" style={{ animationDelay: "0.4s" }}>
         <ShieldCheck size={14} className="text-ink-3" />
         Read-only access. Your key is encrypted and never shown again.
-      </motion.p>
+      </p>
     </main>
   );
 }
 
-const stepMotion = {
-  initial: { opacity: 0, x: 24, filter: "blur(8px)" },
-  animate: { opacity: 1, x: 0, filter: "blur(0px)" },
-  exit: { opacity: 0, x: -24, filter: "blur(8px)" },
-  transition: { duration: 0.45, ease },
-};
 
 function StepHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
@@ -149,7 +132,7 @@ function PinStep({ onNew, onSuccess }: { onNew: () => void; onSuccess: () => voi
   };
 
   return (
-    <motion.div {...stepMotion} className="p-7 sm:p-9">
+    <div className="p-7 sm:p-9">
       <StepHeader icon={<KeyRound size={20} />} title="Welcome back" subtitle="Enter your 8-digit PIN to open your dashboard on this device." />
       <PinInput ref={ref} length={PIN_LENGTH} disabled={busy} state={state} onComplete={submit} onChange={() => setError(null)} />
       <ErrorLine message={error} />
@@ -162,7 +145,7 @@ function PinStep({ onNew, onSuccess }: { onNew: () => void; onSuccess: () => voi
           <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -204,7 +187,7 @@ function KeyStep({
   };
 
   return (
-    <motion.div {...stepMotion} className="relative p-7 sm:p-9">
+    <div className="relative p-7 sm:p-9">
       <button
         onClick={onBack}
         className="absolute left-5 top-5 grid h-9 w-9 place-items-center rounded-xl text-ink-3 transition-colors hover:bg-white/[0.05] hover:text-ink"
@@ -281,25 +264,25 @@ function KeyStep({
           or explore with sample data
         </button>
       )}
-    </motion.div>
+    </div>
   );
 }
 
 function RevealStep({ pin, onDone }: { pin: string; onDone: () => void }) {
   return (
-    <motion.div {...stepMotion} className="p-7 sm:p-9">
+    <div className="p-7 sm:p-9">
       <StepHeader
         icon={<ShieldCheck size={20} />}
         title="Your dashboard PIN"
         subtitle="Use it to open your dashboard on any new device. It's shown only this once, so save it somewhere safe."
       />
       <PinDigits pin={pin} />
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }} className="mt-7 flex flex-col gap-2.5">
+      <div className="fade-in mt-7 flex flex-col gap-2.5" style={{ animationDelay: "0.5s" }}>
         <CopyPinButton pin={pin} />
         <Button onClick={onDone}>
           I&apos;ve saved it. Open my dashboard <ArrowRight size={16} />
         </Button>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
