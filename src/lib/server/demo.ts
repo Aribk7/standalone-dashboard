@@ -2,9 +2,9 @@ import "server-only";
 import type { Cohort, DailyRow, LoopReport, PeriodRow, ProductRow, SeriesPoint } from "../types";
 
 // Entirely invented sample data in the documented /loop/report shape, used for
-// local development and the optional demo sign-in. It describes no real store,
-// and every cost is an arbitrary share of the invented revenue, not a real
-// rate or price from 24F or anyone else.
+// local development and the optional demo sign-in. It describes no real store;
+// costs are random placeholder amounts, not real rates or prices from 24F or
+// anyone else.
 
 const DAY = 86_400_000;
 const HISTORY_DAYS = 1100;
@@ -51,10 +51,8 @@ interface Day {
   paused: number;
 }
 
-// Arbitrary cost shares of the invented revenue (illustrative only).
+// Placeholder payment-processing share of the invented revenue.
 const FEE_SHARE = 0.03;
-const FULFILLMENT_SHARE = 0.15;
-const PRODUCT_SHARE = 0.13;
 
 let history: { built: string; days: Day[] } | null = null;
 
@@ -108,8 +106,9 @@ function buildHistory(today: Date): Day[] {
       units,
       refunds,
       fees: revenue * FEE_SHARE,
-      fulfillment: revenue * (FULFILLMENT_SHARE + (r() - 0.5) * 0.02),
-      productCost: revenue * PRODUCT_SHARE,
+      // Random placeholder amounts that vary freely day to day.
+      fulfillment: orders * (3 + r() * 9),
+      productCost: units * (1.5 + r() * 5),
       paused: Math.round(active * 0.035),
     });
   }

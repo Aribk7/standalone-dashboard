@@ -46,11 +46,11 @@ export function UnitEconomics({ report }: { report: LoopReport }) {
           <MiniFigure
             label="Gross margin"
             value={pct(s.grossMargin)}
-            note="after fulfillment & product"
-            info="(Revenue − cost of goods) ÷ revenue, where cost of goods is fulfillment plus product cost."
+            note="after cost of goods"
+            info="Share of subscription revenue left after cost of goods, as reported by 24F."
             delay={0.18}
           />
-          <MiniFigure label="Cost of goods" value={money(s.cogs)} note="fulfillment + product" delay={0.22} />
+          <MiniFigure label="Cost of goods" value={money(s.cogs)} note="as reported by 24F" delay={0.22} />
         </div>
       </div>
 
