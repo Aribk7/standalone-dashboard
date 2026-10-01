@@ -29,8 +29,12 @@ export function AuthScreen({ demoAvailable }: { demoAvailable: boolean }) {
   const [pin, setPin] = useState<string | null>(null);
   // A full navigation, so the dashboard is always requested with the new
   // session cookie (no client-cached redirect from before sign-in).
-  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- deliberate full navigation
-  const openDashboard = () => window.location.assign("/dashboard");
+  const [opening, setOpening] = useState(false);
+  const openDashboard = () => {
+    setOpening(true);
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- deliberate full navigation
+    window.location.assign("/dashboard");
+  };
 
   return (
     <main className="relative flex min-h-dvh flex-col items-center justify-center px-4 py-16">
@@ -38,7 +42,7 @@ export function AuthScreen({ demoAvailable }: { demoAvailable: boolean }) {
         <LoopMark size={44} />
         <div>
           <h1 className="text-[28px] font-semibold tracking-[-0.03em] sm:text-[34px]">
-            <span className="text-gradient">Loop Analytics</span>
+            <span className="text-ink">Loop</span> <span className="text-accent-soft">Analytics</span>
           </h1>
           <p className="mt-1.5 text-[14px] text-ink-3">Your subscription numbers, beautifully clear.</p>
         </div>
@@ -64,6 +68,17 @@ export function AuthScreen({ demoAvailable }: { demoAvailable: boolean }) {
           {mode === "reveal" && pin && <RevealStep key="reveal" pin={pin} onDone={openDashboard} />}
         </div>
       </div>
+
+      {opening && (
+        <div className="fade-in fixed inset-0 z-50 grid place-items-center bg-bg/80 backdrop-blur-md" role="status">
+          <div className="flex flex-col items-center gap-4">
+            <LoopMark size={48} />
+            <span className="flex items-center gap-2 text-[14px] text-ink-2">
+              <span className="spinner text-accent-soft" /> Opening your dashboard…
+            </span>
+          </div>
+        </div>
+      )}
 
       <p className="fade-in mt-8 flex items-center gap-2 text-[12px] text-ink-3" style={{ animationDelay: "0.4s" }}>
         <ShieldCheck size={14} className="text-ink-3" />
@@ -134,12 +149,26 @@ function PinStep({ onNew, onSuccess }: { onNew: () => void; onSuccess: () => voi
   return (
     <div className="p-7 sm:p-9">
       <StepHeader icon={<KeyRound size={20} />} title="Welcome back" subtitle="Enter your 8-digit PIN to open your dashboard on this device." />
-      <PinInput ref={ref} length={PIN_LENGTH} disabled={busy} state={state} onComplete={submit} onChange={() => setError(null)} />
-      <ErrorLine message={error} />
+      <PinInput ref={ref} length={PIN_LENGTH} disabled={busy} state={state} onComplete={submit} onChange={(v) => v && setError(null)} />
+      {busy && state !== "error" ? (
+        <div className="fade-in flex min-h-[22px] items-center justify-center gap-2 pt-3 text-[13px]" role="status">
+          {state === "success" ? (
+            <span className="flex items-center gap-1.5 text-good">
+              <Check size={15} strokeWidth={3} /> Unlocked
+            </span>
+          ) : (
+            <span className="flex items-center gap-2 text-ink-2">
+              <span className="spinner text-accent-soft" /> Checking PIN…
+            </span>
+          )}
+        </div>
+      ) : (
+        <ErrorLine message={error} />
+      )}
       <div className="mt-6 border-t border-line pt-6 text-center">
         <button
           onClick={onNew}
-          className="group inline-flex items-center gap-1.5 text-[13.5px] text-ink-2 transition-colors hover:text-ink"
+          className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[13.5px] text-ink-2 transition-colors hover:bg-white/[0.04] hover:text-ink active:text-accent-soft"
         >
           First time here? Connect your 24F API key
           <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
@@ -259,7 +288,7 @@ function KeyStep({
         <button
           onClick={() => connect("demo")}
           disabled={busy}
-          className="mt-4 w-full text-center text-[13px] text-ink-3 transition-colors hover:text-ink-2"
+          className="mt-4 w-full rounded-lg py-1.5 text-center text-[13px] text-ink-3 transition-colors hover:bg-white/[0.04] hover:text-ink-2 active:text-accent-soft"
         >
           or explore with sample data
         </button>

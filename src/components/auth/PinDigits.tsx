@@ -3,6 +3,7 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { toast } from "@/components/ui/Toaster";
 
 /** A freshly issued PIN, revealed digit by digit. */
 export function PinDigits({ pin }: { pin: string }) {
@@ -32,9 +33,10 @@ export function CopyPinButton({ pin }: { pin: string }) {
     try {
       await navigator.clipboard.writeText(pin);
       setCopied(true);
+      toast("PIN copied to clipboard");
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // clipboard blocked; the PIN is on screen to copy by hand
+      toast("Couldn't copy. Write the PIN down instead.", "info");
     }
   };
   return (

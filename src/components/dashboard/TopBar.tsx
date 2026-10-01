@@ -24,6 +24,11 @@ interface Props {
 export function TopBar({ range, onRange, onHoverRange, storeName, syncedAt, syncing, sourceError, demo, fetching }: Props) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/70 backdrop-blur-2xl backdrop-saturate-150">
+      {fetching && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px overflow-hidden" role="progressbar" aria-label="Loading">
+          <div className="loading-bar" />
+        </div>
+      )}
       <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
         <Wordmark className="mr-auto lg:mr-0" />
 

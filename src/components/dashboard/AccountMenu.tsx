@@ -2,11 +2,11 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, KeyRound, LogOut, MonitorSmartphone, RefreshCw, UserRound } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CopyPinButton, PinDigits } from "@/components/auth/PinDigits";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { toast } from "@/components/ui/Toaster";
 import { ApiError, postJson } from "@/lib/client";
 import { ReplaceKeyForm } from "./ReplaceKeyForm";
 
@@ -16,7 +16,6 @@ export function AccountMenu({ demo }: { demo: boolean }) {
   const [open, setOpen] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
   const root = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
@@ -30,10 +29,13 @@ export function AccountMenu({ demo }: { demo: boolean }) {
     };
   }, [open]);
 
+  const [leaving, setLeaving] = useState(false);
   const signOut = async (everywhere = false) => {
+    setDialog(null);
+    setLeaving(true);
     await postJson("/api/auth/logout", { everywhere }).catch(() => undefined);
-    router.replace("/");
-    router.refresh();
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload clears all client state
+    window.location.assign("/");
   };
 
   const items = [
@@ -77,7 +79,7 @@ export function AccountMenu({ demo }: { demo: boolean }) {
                   setOpen(false);
                   it.onClick();
                 }}
-                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-white/[0.06] ${
+                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-white/[0.06] active:bg-white/[0.1] ${
                   "danger" in it && it.danger ? "text-bad" : "text-ink-2 hover:text-ink"
                 }`}
               >
@@ -89,13 +91,25 @@ export function AccountMenu({ demo }: { demo: boolean }) {
         )}
       </AnimatePresence>
 
+      {leaving && (
+        <div className="fade-in fixed inset-0 z-[150] grid place-items-center bg-bg/80 backdrop-blur-md" role="status">
+          <span className="flex items-center gap-2 text-[14px] text-ink-2">
+            <span className="spinner text-accent-soft" /> Signing out…
+          </span>
+        </div>
+      )}
       <NewPinDialog open={dialog === "pin"} onClose={() => setDialog(null)} />
       <Modal open={dialog === "key"} onClose={() => setDialog(null)} title="Replace API key">
         <h2 className="text-[18px] font-semibold tracking-tight">Replace API key</h2>
         <p className="mb-5 mt-1.5 text-[13.5px] leading-relaxed text-ink-3">
           Paste a new key from your 24F workspace. Your PIN and signed-in devices stay the same.
         </p>
-        <ReplaceKeyForm onDone={() => setDialog(null)} />
+        <ReplaceKeyForm
+          onDone={() => {
+            setDialog(null);
+            toast("API key updated");
+          }}
+        />
       </Modal>
       <Modal open={dialog === "signout-all"} onClose={() => setDialog(null)} title="Sign out on all devices">
         <h2 className="text-[18px] font-semibold tracking-tight">Sign out everywhere?</h2>
@@ -134,6 +148,7 @@ function NewPinDialog({ open, onClose }: { open: boolean; onClose: () => void })
     try {
       const res = await postJson<{ pin: string }>("/api/auth/new-pin");
       setPin(res.pin);
+      toast("New PIN created. The old one no longer works.");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Something went wrong.");
     } finally {
