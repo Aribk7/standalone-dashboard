@@ -25,8 +25,8 @@ using the client's own key. It contains no 24F internals.
    Integrations → Supabase) and link this repo in Supabase's GitHub integration
    (working directory `.`, production branch `main`). Migrations in
    `supabase/migrations/` are applied on every push to `main`.
-2. **Secret:** add `APP_SECRET` in Vercel's environment variables (see
-   `.env.example` for how to generate one).
+2. **Secret (optional):** `APP_SECRET` in Vercel's environment variables. If it
+   is not set, the server derives one from the Supabase server key.
 3. **Deploy:** push to `main`; Vercel builds and deploys.
 
 ## Local development

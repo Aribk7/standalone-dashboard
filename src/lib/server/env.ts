@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 
 // All secrets come from environment variables (Vercel project settings, or
 // .env.local for local development). Nothing secret is ever committed.
@@ -8,6 +9,11 @@ export const isProduction = process.env.NODE_ENV === "production";
 export function appSecret(): Buffer {
   const raw = process.env.APP_SECRET;
   if (!raw) {
+    // Without a dedicated APP_SECRET, derive one from the Supabase server key,
+    // which is already a server-only secret set by the Vercel integration.
+    // Rotating that key then invalidates stored API keys and PINs.
+    const supabaseKey = supabaseConfig()?.key;
+    if (supabaseKey) return createHash("sha256").update(`loop-dashboard:app-secret:${supabaseKey}`).digest();
     if (isProduction) throw new Error("APP_SECRET is not set");
     // Local development only: a fixed throwaway secret so the app runs without setup.
     return Buffer.from("local-development-secret-not-for-production-use!!");
