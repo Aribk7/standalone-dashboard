@@ -12,7 +12,7 @@ import { Delta } from "@/components/ui/Delta";
 import { InfoTip } from "@/components/ui/InfoTip";
 import { Segmented } from "@/components/ui/Segmented";
 import { bucketSum, grainFor } from "@/lib/bucket";
-import { fullDate, money, monthLabel, shortDate } from "@/lib/format";
+import { fullDate, money, monthLabel, pct, shortDate } from "@/lib/format";
 import type { LoopReport } from "@/lib/types";
 import { Section } from "../Section";
 import { StatTile } from "../StatTile";
@@ -22,38 +22,12 @@ const tail = <T,>(a: T[], n = 30) => a.slice(Math.max(0, a.length - n));
 export function Overview({ report, animKey }: { report: LoopReport; animKey: string }) {
   const s = report.summary;
   const series = report.series;
-  const mrrSeries = useMemo(() => series.map((p) => ({ date: p.date, value: p.mrr })), [series]);
   const t = (k: keyof (typeof series)[number]) => tail(series).map((p) => p[k] as number | null);
 
   return (
     <Section id="overview" kicker="Subscribers & MRR" title="Overview">
       <div className="grid gap-4 lg:grid-cols-12">
-        <Card className="p-5 sm:p-7 lg:col-span-8" delay={0.05}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[13px] text-ink-2">Monthly recurring revenue</span>
-              <InfoTip>
-                Every active subscription&apos;s price normalised to one month. A $60 plan billed every 2 months counts as $30.
-              </InfoTip>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Delta value={s.mrrChange} format="money" size="md" />
-              <Delta value={s.mrrGrowthPct} format="pct" size="md" />
-            </div>
-          </div>
-          <AnimatedNumber value={s.mrr} format="money" className="mt-2 block text-[44px] font-semibold leading-none tracking-[-0.045em] sm:text-[60px]" />
-          <p className="mt-3 text-[13px] text-ink-3">
-            From <span className="text-ink-2">{money(s.mrrStart)}</span> at the start of the range ·{" "}
-            <span className="text-ink-2">{money(s.mrrGrowthPerDay, { sign: true })}</span> a day
-          </p>
-          <div className="mt-6">
-            {series.length > 1 ? (
-              <TimeChart data={mrrSeries} format="money" label="MRR" height={280} animationKey={animKey} />
-            ) : (
-              <SingleDayNote />
-            )}
-          </div>
-        </Card>
+        <MrrHero report={report} animKey={animKey} />
 
         <div className="grid grid-cols-2 gap-3 lg:col-span-4 lg:gap-4">
           <StatTile
@@ -105,6 +79,113 @@ export function Overview({ report, animKey }: { report: LoopReport; animKey: str
 
       <Movement report={report} animKey={animKey} />
     </Section>
+  );
+}
+
+type MrrMode = "true" | "total";
+const MRR_MODE_KEY = "loop.mrrMode";
+
+const MRR_MODES = [
+  { value: "true" as const, label: "True MRR" },
+  { value: "total" as const, label: "Total MRR" },
+];
+
+/**
+ * Headline MRR. "True" is what the MRR will really collect (gross minus the
+ * expected churn, failed-payment and refund adjustments over the trailing
+ * 30 days); "Total" is gross MRR. The daily history only exists as gross MRR,
+ * so the True chart scales it by today's collection rate.
+ */
+function MrrHero({ report, animKey }: { report: LoopReport; animKey: string }) {
+  const s = report.summary;
+  const series = report.series;
+  const c = report.collection;
+  const trueAvailable = c?.trueMrr != null && c.grossMrr != null && c.grossMrr > 0;
+  const rate = trueAvailable ? c!.trueMrr! / c!.grossMrr! : 1;
+
+  const [mode, setModeState] = useState<MrrMode>(() => {
+    try {
+      return localStorage.getItem(MRR_MODE_KEY) === "total" ? "total" : "true";
+    } catch {
+      return "true";
+    }
+  });
+  const setMode = (m: MrrMode) => {
+    setModeState(m);
+    try {
+      localStorage.setItem(MRR_MODE_KEY, m);
+    } catch {
+      // storage unavailable
+    }
+  };
+  const isTrue = mode === "true" && trueAvailable;
+  const k = isTrue ? rate : 1;
+  const scale = (v: number | null) => (v === null ? null : v * k);
+
+  const chart = useMemo(() => series.map((p) => ({ date: p.date, value: p.mrr === null ? null : p.mrr * k })), [series, k]);
+  const headline = isTrue ? c!.trueMrr : s.mrr;
+
+  return (
+    <Card className="p-5 sm:p-7 lg:col-span-8" delay={0.05}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[13px] text-ink-2">{isTrue ? "True monthly recurring revenue" : "Total monthly recurring revenue"}</span>
+          <InfoTip>
+            {isTrue ? (
+              <>
+                What your MRR will really collect: total MRR minus expected churn, failed payments and refunds over the trailing 30 days
+                ({pct(rate, { digits: 1 })} of total today). The trend applies today&apos;s rate to each day&apos;s total MRR.
+              </>
+            ) : (
+              <>Every active subscription&apos;s price normalised to one month. A $60 plan billed every 2 months counts as $30.</>
+            )}
+          </InfoTip>
+        </div>
+        <div title={trueAvailable ? undefined : "True MRR appears once payments and refunds have synced"}>
+          <Segmented
+            size="sm"
+            label="MRR measure"
+            options={MRR_MODES}
+            value={isTrue ? "true" : "total"}
+            onChange={(m) => trueAvailable && setMode(m)}
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-end gap-x-4 gap-y-2">
+        <AnimatedNumber value={headline} format="money" className="block text-[44px] font-semibold leading-none tracking-[-0.045em] sm:text-[60px]" />
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <Delta value={scale(s.mrrChange)} format="money" size="md" />
+          <Delta value={s.mrrGrowthPct} format="pct" size="md" />
+        </div>
+      </div>
+      <p className="mt-3 text-[13px] text-ink-3">
+        {isTrue ? (
+          <>
+            <span className="text-ink-2">{money(c!.grossMrr)}</span> total, less <span className="text-ink-2">{money(c!.grossMrr! - c!.trueMrr!)}</span>{" "}
+            expected losses ·{" "}
+          </>
+        ) : (
+          <>
+            From <span className="text-ink-2">{money(s.mrrStart)}</span> at the start of the range ·{" "}
+          </>
+        )}
+        <span className="text-ink-2">{money(scale(s.mrrGrowthPerDay), { sign: true })}</span> a day
+      </p>
+      <div className="mt-6">
+        {series.length > 1 ? (
+          <TimeChart
+            data={chart}
+            format="money"
+            label={isTrue ? "True MRR" : "Total MRR"}
+            color={isTrue ? "var(--s1)" : "var(--s3)"}
+            height={280}
+            animationKey={animKey + mode}
+          />
+        ) : (
+          <SingleDayNote />
+        )}
+      </div>
+    </Card>
   );
 }
 
