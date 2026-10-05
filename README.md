@@ -46,6 +46,13 @@ TanStack Query, Supabase.
 
 ## Daily performance dashboard
 
+For an isolated sample deployment before live storage is configured, set
+`READ_ONLY_PREVIEW=1`. The home page shows an interactive fictional dashboard;
+all `/api/*` routes return `503 setup_pending` before reading request bodies.
+No API key entry, sign-in, financial requests or database access occurs in this
+mode. Keep the flag enabled until the existing secure production setup has been
+configured and verified. This preview does not show live business data.
+
 The main view now brings daily net revenue, spend across Meta accounts, operating
 profit, blended and Meta-attributed ROAS, and cost per unique first paid subscriber
 together. A paginated daily ledger supports account/status filters and inline
@@ -83,7 +90,7 @@ The verified repository contract is the existing read-only 24F Client API:
 `GET /connections` validates the client key; `GET /loop/report?from=...&to=...`
 returns aggregate reports. The current contract has no documented per-account
 Meta list, payment-provider ledger, Mercury cash-flow endpoint or overhead fields.
-The heard provider names "StraightSell" and "Rebillz" still require confirmation.
+Actual revenue provider names still require confirmation.
 No undocumented endpoints or direct provider authentication have been invented.
 
 For live aggregate responses, the main view displays API-reported revenue and ad

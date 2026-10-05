@@ -12,7 +12,7 @@ const PAGE_SIZE = 10;
 type ChartMetric = "revenue" | "spend" | "profit";
 const CHART_LABELS: Record<ChartMetric, string> = { revenue: "Net revenue", spend: "Ad spend", profit: "Operating profit" };
 
-export function DailyPerformance({ report, demo, refreshing, onRefresh, from, to }: { report: LoopReport; demo: boolean; refreshing: boolean; onRefresh: () => void; from: string; to: string }) {
+export function DailyPerformance({ report, demo, refreshing, onRefresh, from, to }: { report: LoopReport; demo: boolean; refreshing: boolean; onRefresh?: () => void; from: string; to: string }) {
   const dataset = useMemo(() => withRangeCoverage(report.performance ?? legacyPerformance(report), from, to), [report, from, to]);
   const [account, setAccount] = useState("all");
   const [metric, setMetric] = useState<ChartMetric>("revenue");
@@ -44,9 +44,9 @@ export function DailyPerformance({ report, demo, refreshing, onRefresh, from, to
         </div>
         <div className="flex items-center gap-2 text-[12px]">
           <span className="rounded-lg border border-line bg-surface px-3 py-2 text-ink-2">{dataset.timeZone} <span className="mx-1.5 text-ink-3">/</span> {dataset.currency}</span>
-          <button onClick={onRefresh} disabled={refreshing} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-ink-2 transition hover:border-line-strong disabled:opacity-50" aria-label="Refresh report">
+          {onRefresh && <button onClick={onRefresh} disabled={refreshing} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-ink-2 transition hover:border-line-strong disabled:opacity-50" aria-label="Refresh report">
             <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} /> Refresh
-          </button>
+          </button>}
         </div>
       </div>
 
