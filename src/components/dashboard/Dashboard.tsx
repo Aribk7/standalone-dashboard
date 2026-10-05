@@ -8,6 +8,7 @@ import { ApiError, getJson, postJson } from "@/lib/client";
 import { RANGE_COOKIE, type RangeId } from "@/lib/ranges";
 import type { LoopReport, ReportPayload } from "@/lib/types";
 import { Footer } from "./Footer";
+import { DailyPerformance } from "./DailyPerformance";
 import { SectionNav } from "./SectionNav";
 import { ErrorState, LoadingState, RateLimitBanner } from "./States";
 import { TopBar } from "./TopBar";
@@ -53,6 +54,7 @@ function DashboardInner({ demo, initialRange }: { demo: boolean; initialRange: R
   const router = useRouter();
   const qc = useQueryClient();
   const [range, setRangeState] = useState<RangeId>(initialRange);
+  const [view, setView] = useState<"daily" | "subscriptions">("daily");
 
   // Extend the long-lived session cookie; bounce to sign-in if it was revoked.
   useEffect(() => {
@@ -117,6 +119,12 @@ function DashboardInner({ demo, initialRange }: { demo: boolean; initialRange: R
           <LoadingState />
         ) : (
           <>
+            <div className="mb-6 mt-5 flex gap-5 border-b border-line text-[12px]" role="group" aria-label="Dashboard view">
+              <button onClick={() => setView("daily")} aria-pressed={view === "daily"} className={`border-b-2 pb-3 font-medium ${view === "daily" ? "border-accent text-ink" : "border-transparent text-ink-3"}`}>Daily performance</button>
+              <button onClick={() => setView("subscriptions")} aria-pressed={view === "subscriptions"} className={`border-b-2 pb-3 font-medium ${view === "subscriptions" ? "border-accent text-ink" : "border-transparent text-ink-3"}`}>Subscription analytics</button>
+            </div>
+            {error && error.code !== "rate_limited" && <p role="alert" className="mb-5 rounded-xl border border-warn/20 bg-warn/10 p-3 text-[12px] text-warn">Refresh failed: {error.message} Showing the last available report.</p>}
+            {view === "daily" ? <div aria-busy={stale} className={stale ? "opacity-55" : ""}><DailyPerformance report={report} demo={demo || !!q.data?.demo} refreshing={q.isFetching} onRefresh={() => q.refetch()} from={q.data!.range.from} to={q.data!.range.to} /></div> : <>
             <SectionNav />
             <motion.div
               animate={{ opacity: stale ? 0.55 : 1 }}
@@ -135,6 +143,7 @@ function DashboardInner({ demo, initialRange }: { demo: boolean; initialRange: R
               <StorePnl report={report} animKey={animKey} />
             </motion.div>
             <Footer report={report} asOf={q.data?.asOf ?? null} />
+            </>}
           </>
         )}
       </main>

@@ -180,6 +180,7 @@ export interface LoopSource {
 }
 
 export interface LoopReport {
+  performance?: import("./performance").PerformanceDataset | null;
   summary: LoopSummary;
   series: SeriesPoint[];
   weekly: PeriodRow[];

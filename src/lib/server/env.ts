@@ -36,3 +36,8 @@ export function demoEnabled(): boolean {
 }
 
 export const API_BASE = process.env.F24_API_BASE ?? "https://24f.site/api/finance/v1";
+
+/** A manually entered local key. Never serialized to a client component. */
+export function localClientKey(): string | null {
+  return process.env.NODE_ENV === "development" ? process.env.F24_CLIENT_API_KEY?.trim() || null : null;
+}

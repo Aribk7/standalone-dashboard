@@ -43,3 +43,103 @@ sample data" signs in to a fictional demo store.
 
 Next.js 16 (App Router), React 19, Tailwind CSS 4, Motion, d3-scale/d3-shape,
 TanStack Query, Supabase.
+
+## Daily performance dashboard
+
+The main view now brings daily net revenue, spend across Meta accounts, operating
+profit, blended and Meta-attributed ROAS, and cost per unique first paid subscriber
+together. A paginated daily ledger supports account/status filters and inline
+revenue, cost and account breakdowns. Source freshness and incomplete facts stay
+visible. Subscription analytics remain available in the second tab.
+
+### Run on this Mac
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev --hostname 127.0.0.1 --port 3210
+```
+
+Open `http://127.0.0.1:3210`, choose **Connect your API key**, then **explore with
+sample data**. The sample data is fictional, includes three Meta accounts and two
+generic processors, and deliberately leaves some recent costs incomplete. It is
+not connected to any live payment, advertising or banking account.
+
+An ignored, permission-restricted `.env.local` is prepared in the local checkout.
+Enter the key yourself as `F24_CLIENT_API_KEY` and restart the server. The sign-in
+page then offers **Connect the key saved on this Mac**. This button works only in
+development on localhost and sends no API key to the browser. The value is never
+logged or committed. `APP_SECRET` contains the local encryption secret; preserve
+it while using locally saved PINs. Leave `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` blank to use the existing in-memory store. That store
+is temporary and sessions/PINs can be lost when the server restarts.
+
+No external account grants, infrastructure or deployment are created by local
+setup. The real 24F connection is requested only after you enter the key and click
+the connection button. Do not put secrets in `NEXT_PUBLIC_*` variables.
+
+### API scope and remaining integration work
+
+The verified repository contract is the existing read-only 24F Client API:
+`GET /connections` validates the client key; `GET /loop/report?from=...&to=...`
+returns aggregate reports. The current contract has no documented per-account
+Meta list, payment-provider ledger, Mercury cash-flow endpoint or overhead fields.
+The heard provider names "StraightSell" and "Rebillz" still require confirmation.
+No undocumented endpoints or direct provider authentication have been invented.
+
+For live aggregate responses, the main view displays API-reported revenue and ad
+spend. It leaves profit, blended ROAS and paid-subscriber acquisition cost
+unavailable until their accounting basis is verified. An existing `newSubs` count
+is not assumed to mean first successful paid subscriptions; `firstOrders` is not
+used as that denominator. API-reported `netAfterAds` is not promoted to operating
+profit because fees and overhead semantics are not documented.
+
+`src/lib/performance.ts` defines an **optional proposed** `performance` extension
+to the existing report. It is consumed only when supplied in that response; there
+is no extra upstream call. An upstream adapter must return `schemaVersion: 1`,
+an explicit base `currency`, IANA `timeZone`, `reconciled: true`, daily `days` and
+`sources`. Each day has:
+
+| Field | Required meaning |
+| --- | --- |
+| `ads` | Accounts with stable `id`, name, spend, attributed revenue, currency and reporting timezone. |
+| `revenue` | Facts with cross-provider stable `canonicalId`, provider, gross sales, refunds, fees, disputes, first-payment/renewal revenue and unique `newPaidSubscriberIds`. |
+| `productCost`, `fulfillment`, `operatingExpenses` | Separate, non-overlapping costs; expenses exclude ads and costs already listed elsewhere. |
+| `cashIn`, `cashOut` | Settled bank movements, separately from sales recognition. |
+| `internalTransfersExcluded` | Must explicitly be true before bank cash flow is shown. |
+
+Dates must be unique and valid. Missing/invalid amounts use `null`; empty arrays
+mean the adapter has verified that there are no records, and zero means a known
+zero. Account figures must already match the dataset's base currency and reporting
+day. Mixed figures are blocked rather than converted using an invented exchange
+rate. The current range requests remain UTC inclusive `from` / exclusive `to`;
+any upstream extension must reconcile that requested range before publication.
+Partial coverage must include the expected date with null facts, rather than
+omitting it. No customer identifiers or transaction secrets are needed for this
+UI; paid-subscriber IDs should be stable pseudonymous IDs.
+
+Matching canonical payment facts across providers and matching account snapshots
+are counted once. Conflicting duplicates block affected metrics. Subscriber IDs
+are deduplicated across days in the supplied range. Renewals, failed payments and
+trials must not be placed in `newPaidSubscriberIds`. Include real first-payment and
+renewal amounts, not an allocation guessed from order counts.
+
+Operating profit is gross sales minus refunds, payment fees, disputes, product
+cost, fulfillment, ad spend and operating expenses, before income tax. A missing
+cost leaves daily and full-period profit unavailable. A clearly labeled partial
+total is shown for the days with complete facts. Blended ROAS is net revenue divided
+by total spend; attributed ROAS uses Meta-reported attributed revenue. Ratios are
+computed from totals, not averaged daily ratios. Account filters cannot allocate
+store revenue, overhead or subscribers, so store profit and acquisition ratios
+are disabled for a single-account view.
+
+```bash
+pnpm test
+pnpm exec tsc --noEmit
+pnpm lint
+pnpm build
+```
+
+The accounting regression suite covers deduplication, fee/refund handling,
+reporting units, missing costs, subscriber denominators, ratio aggregation,
+account scoping and bank transfer exclusion. Tests require Node.js 22.18 or newer
+for native TypeScript stripping.

@@ -1,5 +1,6 @@
 import "server-only";
 import type { Cohort, DailyRow, LoopReport, PeriodRow, ProductRow, SeriesPoint } from "../types";
+import type { PerformanceDataset, RevenueFact } from "../performance";
 
 // Entirely invented sample data in the documented /loop/report shape, used for
 // local development and the optional demo sign-in. It describes no real store;
@@ -147,6 +148,36 @@ const weekStart = (d: Date) => {
 };
 const monthStart = (d: Date) => `${d.toISOString().slice(0, 7)}-01`;
 
+function demoPerformance(days: Day[], daily: DailyRow[]): PerformanceDataset {
+  const syncedAt = new Date(Date.now() - 6 * 60_000).toISOString();
+  return {
+    schemaVersion: 1, currency: "USD", timeZone: "UTC", reconciled: true,
+    sources: [
+      { id: "meta", name: "Meta Ads", status: "ready", syncedAt, detail: "3 fictional accounts · 7-day click / 1-day view attribution" },
+      { id: "payments", name: "Revenue providers", status: "ready", syncedAt, detail: "2 fictional processors · actual provider names await confirmation" },
+      { id: "loop", name: "Loop", status: "ready", syncedAt, detail: "Fictional first paid subscribers, separate from renewals" },
+      { id: "mercury", name: "Mercury", status: "ready", syncedAt, detail: "Illustrative settlement cash flow · internal transfers excluded" },
+    ],
+    days: days.map((d, i) => {
+      const split = Math.floor(d.newSubs * 0.64);
+      const providers: RevenueFact[] = [0.64, 0.36].map((share, p) => ({
+        canonicalId: `sample-${d.date}-processor-${p}`, provider: `Sample processor ${p === 0 ? "A" : "B"}`,
+        gross: d.revenue * share, refunds: d.refunds * share, fees: d.fees * share, disputes: d.revenue * 0.002 * share,
+        firstPaymentRevenue: d.revenue * d.newSubs / Math.max(1, d.orders) * share,
+        renewalRevenue: d.revenue * Math.max(0, d.orders - d.firstOrders) / Math.max(1, d.orders) * share,
+        newPaidSubscriberIds: Array.from({ length: p === 0 ? split : d.newSubs - split }, (_, n) => `sample-sub-${d.date}-${p}-${n}`),
+      }));
+      return {
+        date: d.date, revenue: providers,
+        ads: [0.5, 0.32, 0.18].map((share, a) => ({ id: `sample-meta-${a}`, name: ["Prospecting", "Growth", "Retargeting"][a], spend: d.spend * share, attributedRevenue: d.spend * share * (2.25 + a * 0.32 + Math.sin(i / 5) * 0.4), currency: "USD", timeZone: "UTC" })),
+        productCost: daily[i].cogs === null ? null : daily[i].productCost, fulfillment: daily[i].fulfillment, operatingExpenses: 120,
+        cashIn: d.revenue * 0.92, cashOut: d.spend + d.fulfillment + d.productCost + 120,
+        internalTransfersExcluded: true,
+      };
+    }),
+  };
+}
+
 export function demoLoopReport(from: string, to: string): LoopReport {
   const now = new Date();
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -283,6 +314,7 @@ export function demoLoopReport(from: string, to: string): LoopReport {
   const roasCac = div(spend, firstOrders);
 
   return {
+    performance: demoPerformance(days, daily),
     summary: {
       mrr: round2(mrr),
       mrrStart: round2(mrrStart),

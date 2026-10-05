@@ -25,11 +25,16 @@ interface Props {
   /** Start the y-axis at zero instead of fitting the data. */
   zero?: boolean;
   animationKey?: string;
+  currency?: string;
 }
 
 const M = { top: 16, right: 14, bottom: 30, left: 56 };
 
-export function TimeChart({ data, format, label, color = "var(--s1)", height = 260, fill = true, zero = false, animationKey }: Props) {
+export function TimeChart({ data, format, label, color = "var(--s1)", height = 260, fill = true, zero = false, animationKey, currency = "USD" }: Props) {
+  const formatValue = (value: number | null, compact = false) => {
+    if (!format.startsWith("money") || currency === "USD") return fmt(compact && format.startsWith("money") ? "moneyCompact" : format, value);
+    return value === null ? "—" : new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0, notation: compact ? "compact" : "standard" }).format(value);
+  };
   const [ref, { width }] = useSize<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
   const reduce = useReducedMotion();
@@ -107,7 +112,7 @@ export function TimeChart({ data, format, label, color = "var(--s1)", height = 2
               <g key={t} transform={`translate(0,${geo.y(t)})`}>
                 <line x1={0} x2={geo.w} stroke="var(--grid)" strokeWidth={1} />
                 <text x={-12} dy="0.32em" textAnchor="end" className="fill-ink-3 text-[11px] tnum">
-                  {fmt(format === "money" || format === "moneyCents" ? "moneyCompact" : format === "count" ? "countCompact" : format, t)}
+                  {format.startsWith("money") ? formatValue(t, true) : fmt(format === "count" ? "countCompact" : format, t)}
                 </text>
               </g>
             ))}
@@ -177,7 +182,7 @@ export function TimeChart({ data, format, label, color = "var(--s1)", height = 2
           y={M.top + (hv.value !== null ? geo.y(hv.value) : geo.h / 2) - 30}
           width={width}
           title={fullDate(hv.date)}
-          rows={[{ label, value: fmt(format, hv.value), color, shape: "line" }]}
+          rows={[{ label, value: formatValue(hv.value), color, shape: "line" }]}
         />
       )}
     </div>

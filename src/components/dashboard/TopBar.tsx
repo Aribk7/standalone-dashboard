@@ -31,6 +31,7 @@ export function TopBar({ range, onRange, onHoverRange, storeName, syncedAt, sync
       )}
       <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
         <Wordmark className="mr-auto xl:mr-0" />
+        {demo && <span className="rounded-md bg-warn/10 px-2 py-1 text-[10px] text-warn xl:hidden">Sample data</span>}
 
         <motion.div
           initial={{ opacity: 0, y: -4 }}

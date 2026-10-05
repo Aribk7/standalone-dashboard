@@ -1,4 +1,5 @@
 import { num } from "./format";
+import { normalizePerformance } from "./performance";
 import type {
   Cohort,
   Collection,
@@ -124,6 +125,7 @@ export function normalizeLoopReport(input: unknown): LoopReport {
     : null;
 
   return {
+    performance: normalizePerformance(d.performance),
     summary,
     series,
     weekly: period(d.weekly),

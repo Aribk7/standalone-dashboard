@@ -24,12 +24,14 @@ async function post<T>(url: string, body: unknown): Promise<{ ok: true; data: T 
   }
 }
 
-export function AuthScreen({ demoAvailable }: { demoAvailable: boolean }) {
+export function AuthScreen({ demoAvailable, localKeyAvailable = false }: { demoAvailable: boolean; localKeyAvailable?: boolean }) {
   const [mode, setMode] = useState<Mode>("pin");
   const [pin, setPin] = useState<string | null>(null);
   // A full navigation, so the dashboard is always requested with the new
   // session cookie (no client-cached redirect from before sign-in).
   const [opening, setOpening] = useState(false);
+  const [localBusy, setLocalBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const openDashboard = () => {
     setOpening(true);
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- deliberate full navigation
@@ -44,9 +46,11 @@ export function AuthScreen({ demoAvailable }: { demoAvailable: boolean }) {
           <h1 className="text-[28px] font-semibold tracking-[-0.03em] sm:text-[34px]">
             <span className="text-ink">Loop</span> <span className="text-accent-soft">Analytics</span>
           </h1>
-          <p className="mt-1.5 text-[14px] text-ink-3">Your subscription numbers, beautifully clear.</p>
+          <p className="mt-1.5 text-[14px] text-ink-3">Your business performance, one clear view.</p>
         </div>
       </div>
+
+      {localKeyAvailable && mode === "pin" && <div className="mt-4 w-full max-w-[460px]"><Button variant="subtle" className="w-full" loading={localBusy} onClick={async () => { setLocalBusy(true); setLocalError(null); const result = await post<{ status: string; pin?: string }>("/api/auth/connect", { local: true }); setLocalBusy(false); if (!result.ok) setLocalError(result.message); else if (result.data.pin) { setPin(result.data.pin); setMode("reveal"); } else openDashboard(); }}><KeyRound size={15} /> Connect the key saved on this Mac</Button>{localError && <p role="alert" className="mt-2 text-center text-[12px] text-bad">{localError}</p>}</div>}
 
       <div className="card w-full max-w-[460px] overflow-hidden">
         {/* Steps swap instantly (no exit animation), so a slow or throttled

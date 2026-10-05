@@ -1,5 +1,5 @@
 import { encrypt, keyFingerprint } from "@/lib/server/crypto";
-import { demoEnabled } from "@/lib/server/env";
+import { demoEnabled, localClientKey } from "@/lib/server/env";
 import { API_KEY_PATTERN, UpstreamError, f24Get } from "@/lib/server/f24";
 import { apiError, fromUpstream, ok, readJson } from "@/lib/server/http";
 import { withUniquePin } from "@/lib/server/pin";
@@ -13,7 +13,13 @@ import { store } from "@/lib/server/store";
 //  - `replace: true` while signed in: swaps the stored key (e.g. after revoking the old one).
 export async function POST(req: Request) {
   const body = await readJson(req);
-  const apiKey = typeof body.key === "string" ? body.key.trim() : "";
+  const local = body.local === true;
+  if (local) {
+    const host = new URL(req.url).hostname;
+    const origin = req.headers.get("origin");
+    if (process.env.NODE_ENV !== "development" || !["localhost", "127.0.0.1", "[::1]"].includes(host) || (origin && origin !== new URL(req.url).origin)) return apiError(403, "bad_request", "Local key connection is available only on this computer.");
+  }
+  const apiKey = local ? localClientKey() ?? "" : typeof body.key === "string" ? body.key.trim() : "";
   const replace = body.replace === true;
   const ip = await clientIpHash();
 
